@@ -1,0 +1,9 @@
+API_KEY = ""
+RATE = 16000 #Audio sampling rate
+CHANNELS = 1
+CHUNK = 1024 # alınan ses miktarı
+FORMAT = 8  # pyaudio.paInt16
+DURATION = 8 # length of sound(s)
+MODEL_SIZE = "tiny"
+EMBEDDING_MODEL = "models/gemini-embedding-001"
+CONTENT_GEN_MODEL = "models/gemini-2.0-flash"
