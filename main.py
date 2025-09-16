@@ -11,6 +11,9 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from config import API_KEY,CHANNELS,RATE,CHUNK,FORMAT,DURATION,MODEL_SIZE,EMBEDDING_MODEL,CONTENT_GEN_MODEL,DEVICE,COMPUTE_TYPE, FILE_BEAM_SIZE, AUDIO_BEAM_SIZE
 from arrays import text_embeddings, transcript_lines
+import os
+import random
+from datetime import datetime
 
 # ----- CONFIG -----
 model = WhisperModel(MODEL_SIZE, device=DEVICE, compute_type=COMPUTE_TYPE)
@@ -250,6 +253,7 @@ def transcribe_file():
     except Exception as e:
         messagebox.showerror("Error", f"Error while transcribing file: {e}")
     finally:
+        save_transcript_with_summary()
         running = False
         stop_btn.config(state=tk.DISABLED)
         start_btn.config(state=tk.NORMAL)
@@ -299,7 +303,7 @@ def start_recording():
         running = False
 
 # It stops recording audio
-def stop_recording():
+def stop_recording(save_to_file=True):
     global stream, running
     running = False
     if stream:
@@ -309,6 +313,32 @@ def stop_recording():
     audio_queue.put(None)
     stop_btn.config(state=tk.DISABLED)
     start_btn.config(state=tk.NORMAL)
+
+    if save_to_file:
+        save_transcript_with_summary()
+
+def save_transcript_with_summary():
+    if not transcript_lines:
+        messagebox.showinfo("ınfo", "There is no transkript for save.")
+        return
+
+    save_dir = "backups"
+    os.makedirs(save_dir, exist_ok=True)
+
+    date_str = datetime.now().strftime("%d_%m_%Y")
+    rand_num = random.randint(1000, 9999)
+    file_name = f"{date_str}_{rand_num}.txt"
+    file_path = os.path.join(save_dir, file_name)
+
+    summary = generate_summary_text()
+
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write("Tüm metin:\n")
+        f.write(" ".join(transcript_lines))
+        f.write("\n\nÖzet metin:\n")
+        f.write(summary)
+
+    messagebox.showinfo("Info", f"The transkript saved:\n{file_path}")
 
 # --- GUI Buttons ---
 frame = tk.Frame(root)
@@ -355,6 +385,25 @@ def summarize_text():
         {full_text}
         """)
     messagebox.showinfo("Gemini Summary", summary)
+
+def generate_summary_text():
+    if not transcript_lines:
+        return "Henüz özetlenecek içerik yok."
+
+    full_text = " ".join(transcript_lines)
+
+    summary = gemini_generate_content(f"""
+        Aşağıdaki konuşmayı kısa ve anlaşılır şekilde özetle.
+        - Sadece önemli noktaları vurgula
+        - Gereksiz tekrar ve detayları çıkar
+        - Gerekirse madde işaretleriyle sun
+
+        Konuşma:
+        {full_text}
+    """)
+
+    return summary.strip()
+
 
 def qa_text():
     if not transcript_lines:
@@ -425,7 +474,7 @@ def contextual_qa_text():
             processing_window.destroy()
 
 def on_close():
-    stop_recording()
+    stop_recording(False)
     root.destroy()
 
 root.protocol("WM_DELETE_WINDOW", on_close)

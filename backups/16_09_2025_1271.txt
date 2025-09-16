@@ -1,0 +1,9 @@
+Tüm metin:
+platform, and kind of a virtualization technology that makes it easy for us to develop into a absence I don't need the package to virtual containerize. meaning apps run the same no matter where they are or what machine they are running. So our containers can be the way to just about any machine without any... any compatibility issues so your software stays system agnostic, making software simpler to use, less work to develop, and easier to maintain. Use containers ready.
+
+Özet metin:
+*   **Docker:** Bir sanallaştırma teknolojisidir.
+*   **Konteynerleştirme:** Uygulamaların her yerde aynı şekilde çalışmasını sağlar.
+*   **Uyumluluk Sorunları Yok:** Uygulamalar farklı makinelerde sorunsuz çalışır.
+*   **Sistemden Bağımsız:** Yazılım, işletim sisteminden bağımsız hale gelir.
+*   **Faydaları:** Daha kolay kullanım, daha az geliştirme çabası ve daha basit bakım.
