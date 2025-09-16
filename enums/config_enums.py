@@ -12,6 +12,9 @@ class ModelSize(Enum):
     TINY = "tiny"
     BASE = "base"
     SMALL = "small"
+    MEDIUM = "medium"
+    LARGE1 = "large-v1"
+    LARGE2 = "large-v2"
 
 class ComputeType(Enum):
     INT8 = "int8"
