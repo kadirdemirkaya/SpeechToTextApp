@@ -204,7 +204,7 @@ def transcribe_audio():
         if audio_data is None:
             break
 
-        segments, _ = model.transcribe(audio_data, beam_size=2, language="en")
+        segments, _ = model.transcribe(audio_data, beam_size=2, language=None)
         for segment in segments:
             if segment.no_speech_prob > 0.8 and segment.avg_logprob < -1.5:
                 text = "[inaudible]"
@@ -347,7 +347,14 @@ def summarize_text():
         messagebox.showinfo("Info", "Nothing to summarize.")
         return
     full_text = " ".join(transcript_lines)
-    summary = gemini_generate_content(f"Lütfen aşağıdaki konuşmayı kısa ve öz bir şekilde özetle:\n{full_text}")
+    summary = gemini_generate_content(f"""
+        Lütfen aşağıdaki konuşmayı kısa ve anlaşılır bir şekilde özetle.
+        Özellikle **önemli noktaları ve kritik bilgileri** vurgula.
+        Gerekirse madde işaretleri ile sun ve gereksiz detayları atla.
+
+        Konuşma:
+        {full_text}
+        """)
     messagebox.showinfo("Gemini Summary", summary)
 
 def qa_text():
@@ -357,7 +364,16 @@ def qa_text():
     question = simpledialog.askstring("Question", "Write a question about the text:")
     if question:
         full_text = " ".join(transcript_lines)
-        prompt = f"Aşağıdaki konuşmaya göre soruyu yanıtla:\nMetin:\n{full_text}\n\nSoru:\n{question}"
+        prompt = f"""
+            Aşağıdaki konuşmaya göre soruyu kısa ve anlaşılır bir şekilde yanıtla.
+            Metin:
+            {full_text}
+
+            Soru:
+            {question}
+
+            Cevap:
+            """
         answer = gemini_generate_content(prompt)
         messagebox.showinfo("Gemini Response", answer)
 
