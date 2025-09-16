@@ -10,11 +10,11 @@ import json
 from faster_whisper import WhisperModel
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-from config import API_KEY,CHANNELS,RATE,CHUNK,FORMAT,DURATION,MODEL_SIZE,EMBEDDING_MODEL,CONTENT_GEN_MODEL
+from config import API_KEY,CHANNELS,RATE,CHUNK,FORMAT,DURATION,MODEL_SIZE,EMBEDDING_MODEL,CONTENT_GEN_MODEL,DEVICE,COMPUTE_TYPE, FILE_BEAM_SIZE, AUDIO_BEAM_SIZE
 from arrays import text_embeddings, transcript_lines
 
 # ----- CONFIG -----
-model = WhisperModel(MODEL_SIZE, device="cpu", compute_type="int8")
+model = WhisperModel(MODEL_SIZE, device=DEVICE, compute_type=COMPUTE_TYPE)
 format = pyaudio.paInt16
 vad = webrtcvad.Vad(2)
 
@@ -204,7 +204,7 @@ def transcribe_audio():
         if audio_data is None:
             break
 
-        segments, _ = model.transcribe(audio_data, beam_size=2, language=None)
+        segments, _ = model.transcribe(audio_data, beam_size=AUDIO_BEAM_SIZE, language=None)
         for segment in segments:
             if segment.no_speech_prob > 0.8 and segment.avg_logprob < -1.5:
                 text = "[inaudible]"
@@ -236,7 +236,7 @@ def record_loop():
 def transcribe_file():
     global running
     try:
-        segments, _ = model.transcribe(selected_file, beam_size=1)
+        segments, _ = model.transcribe(selected_file, beam_size=FILE_BEAM_SIZE)
         for segment in segments:
             if not running:
                 break
