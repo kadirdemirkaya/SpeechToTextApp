@@ -6,7 +6,6 @@ import pyaudio
 import numpy as np
 import webrtcvad
 import requests
-import json
 from faster_whisper import WhisperModel
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity

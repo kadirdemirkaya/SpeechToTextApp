@@ -1,0 +1,6 @@
+numpy
+requests
+pyaudio
+webrtcvad
+faster-whisper
+scikit-learn

@@ -31,10 +31,30 @@ The application's configuration can be found in `config.py`:
 - API_KEY: Your Gemini AI API key
 - RATE: Audio sampling rate (default: 16000)
 - CHANNELS: Audio channels (default: 1)
-- CHUNK: Audio chunk size
-- DURATION: Recording duration in seconds
-- MODEL_SIZE: Whisper model size ("tiny" by default)
+- CHUNK: Audio chunk size (default: 1024)
+- DURATION: Recording duration in seconds (default: 8)
+- FILE_BEAM_SIZE: Beam size for file transcription (default: 1)
+- AUDIO_BEAM_SIZE: Beam size for live audio transcription (default: 3)
+- MODEL_SIZE: Whisper model size, choose from `ModelSize` enum:
+    - ModelSize.TINY
+    - ModelSize.SMALL
+    - ModelSize.BASE
+- EMBEDDING_MODEL: Path to embedding model (default: "models/gemini-embedding-001")
+- CONTENT_GEN_MODEL: Path to content generation model (default: "models/gemini-2.0-flash")
+- DEVICE: Processing device, choose from `DeviceType` enum:
+    - DeviceType.CPU
+    - DeviceType.CUDA
+- COMPUTE_TYPE: Model compute type, choose from `ComputeType` enum:
+    - ComputeType.INT8
+    - ComputeType.FLOAT16
 ```
+- Notes: You can change your performance or accuracy gain functions as you want by changing the property in the configuration file.
+
+## Demo / Screenshots
+
+| ![Screenshot 1](images/ss1.png) | ![Screenshot 2](images/ss2.png) | ![Screenshot 3](images/ss3.png) |
+|--------------------------------|--------------------------------|--------------------------------|
+| ![Screenshot 4](images/ss4.png) | ![Screenshot 5](images/ss5.png) | ![Screenshot 6](images/ss6.png) |
 
 ## Usage
 
@@ -48,10 +68,13 @@ python main.py
    - File: Select an audio file to transcribe
 
 3. Use the interface buttons:
-   - 🎙️ Start: Begin recording/transcribing
-   - 🛑 Stop: Stop the current session
-   - 📜 Show All Text: View complete transcript
-   - ❓ Ask Questions: Query the transcribed content
+   - 🎙️ **Start**: Begin recording/transcribing  
+     > *For microphone input: begin recording and live transcription.*  
+     > *For audio files: start transcribing the selected file. The transcription will automatically stop when the file ends, or you can stop it manually.*
+   - 🛑 **Stop**: Stop the current session
+   - 📜 **Show All Text**: View complete transcript
+   - ❓ **Ask Questions**: Query the transcribed content
+
 
 ## Project Structure
 
