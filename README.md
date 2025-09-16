@@ -11,6 +11,7 @@ This is a real-time speech-to-text transcription application with AI capabilitie
 - 📝 Text embedding and semantic search capabilities
 - 🔍 Question-answering about transcribed content
 - 🌐 Support for both English and Turkish languages
+- 💾 Automatically saves all transcribed text and summarized text in .txt format after each conversation is stopped
 
 ## Requirements
 
