@@ -14,6 +14,7 @@ from arrays import text_embeddings, transcript_lines
 import os
 import random
 from datetime import datetime
+import textwrap
 
 # ----- CONFIG -----
 model = WhisperModel(MODEL_SIZE, device=DEVICE, compute_type=COMPUTE_TYPE)
@@ -97,6 +98,71 @@ def find_most_relevant_context(question, top_n=3):
     similarities.sort(key=lambda x: x[1], reverse=True)
     
     return "\n".join([f"[{i+1}] {text}" for i, (text, sim) in enumerate(similarities[:top_n])])
+
+def gemini_generate_content_with_chunk(prompt_text, chunk_size=2000):
+    lines = prompt_text.split("\n")
+    chunks = []
+    current_chunk = ""
+    for line in lines:
+        if len(current_chunk) + len(line) + 1 > chunk_size:
+            if current_chunk:  # boş değilse ekle
+                chunks.append(current_chunk.strip())
+            current_chunk = line
+        else:
+            if current_chunk:
+                current_chunk += "\n" + line
+            else:
+                current_chunk = line  # boşsa direkt ata
+    if current_chunk.strip():
+        chunks.append(current_chunk.strip())
+
+    chunk_summaries = []
+
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+    headers = {
+        "Content-Type": "application/json",
+        "X-goog-api-key": API_KEY
+    }
+
+    for chunk in chunks:
+        chunk_prompt = textwrap.dedent(f"""\
+            Aşağıdaki metni, önemli noktaları kaybetmeden, kısa ve anlaşılır bir şekilde özetle.
+            - Gereksiz tekrarları çıkarma.
+            - Madde işaretleriyle sunabilirsin.
+            Metin:
+            {chunk}""")
+    
+        data = {"contents": [{"parts": [{"text": chunk_prompt}]}]}
+
+        try:
+            response = requests.post(url, headers=headers, json=data, timeout=15)
+            response.raise_for_status()
+            chunk_summary = response.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+        except Exception as e:
+            chunk_summary = f"[API Error] {e}"
+
+        chunk_summaries.append(chunk_summary)
+
+    if len(chunk_summaries) == 1:
+        return chunk_summaries[0]
+
+    prompt_template =  """
+        Aşağıdaki konuşmayı kısa ve anlaşılır şekilde özetle.
+        - Sadece önemli noktaları vurgula
+        - Gereksiz tekrar ve detayları çıkar
+        - Gerekirse madde işaretleriyle sun"""
+    
+    joined_summaries = '\n'.join(chunk_summaries)
+    final_prompt = textwrap.dedent(f"{prompt_template}\n{joined_summaries}")
+
+    try:
+        response = requests.post(url, headers=headers, json={"contents": [{"parts": [{"text": final_prompt}]}]}, timeout=15)
+        response.raise_for_status()
+        final_summary = response.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+    except Exception as e:
+        final_summary = f"[API Error] {e}"
+
+    return final_summary
 
 # return generated contents
 def gemini_generate_content(prompt_text):
@@ -344,11 +410,14 @@ def save_transcript_with_summary():
 frame = tk.Frame(root)
 frame.pack(pady=5)
 
-start_btn = tk.Button(frame, text="Start", command=start_recording)
-start_btn.grid(row=0, column=0, padx=5)
+frame_buttons = tk.Frame(frame)
+frame_buttons.grid(row=0, column=0, columnspan=4) 
 
-stop_btn = tk.Button(frame, text="Stop", command=stop_recording, state=tk.DISABLED)
-stop_btn.grid(row=0, column=1, padx=5)
+start_btn = tk.Button(frame_buttons, text="Start", command=start_recording)
+start_btn.pack(side=tk.LEFT, padx=5)
+
+stop_btn = tk.Button(frame_buttons, text="Stop", command=stop_recording, state=tk.DISABLED)
+stop_btn.pack(side=tk.LEFT, padx=5)
 
 tk.Button(frame, text="Show the all texts", command=lambda: show_all_text()).grid(row=1, column=0, padx=5, pady=5)
 tk.Button(frame, text="Summarize", command=lambda: summarize_text()).grid(row=1, column=1, padx=5, pady=5)
@@ -376,14 +445,8 @@ def summarize_text():
         messagebox.showinfo("Info", "Nothing to summarize.")
         return
     full_text = " ".join(transcript_lines)
-    summary = gemini_generate_content(f"""
-        Lütfen aşağıdaki konuşmayı kısa ve anlaşılır bir şekilde özetle.
-        Özellikle **önemli noktaları ve kritik bilgileri** vurgula.
-        Gerekirse madde işaretleri ile sun ve gereksiz detayları atla.
-
-        Konuşma:
-        {full_text}
-        """)
+    summary = gemini_generate_content_with_chunk(full_text, chunk_size=2000)
+    
     messagebox.showinfo("Gemini Summary", summary)
 
 def generate_summary_text():
@@ -392,18 +455,9 @@ def generate_summary_text():
 
     full_text = " ".join(transcript_lines)
 
-    summary = gemini_generate_content(f"""
-        Aşağıdaki konuşmayı kısa ve anlaşılır şekilde özetle.
-        - Sadece önemli noktaları vurgula
-        - Gereksiz tekrar ve detayları çıkar
-        - Gerekirse madde işaretleriyle sun
+    summary = gemini_generate_content_with_chunk(full_text,chunk_size=2000)
 
-        Konuşma:
-        {full_text}
-    """)
-
-    return summary.strip()
-
+    return summary
 
 def qa_text():
     if not transcript_lines:
@@ -412,17 +466,24 @@ def qa_text():
     question = simpledialog.askstring("Question", "Write a question about the text:")
     if question:
         full_text = " ".join(transcript_lines)
+
         prompt = f"""
-            Aşağıdaki konuşmaya göre soruyu kısa ve anlaşılır bir şekilde yanıtla.
-            Metin:
-            {full_text}
+        Sen bir soru-cevap asistanısın. Sana bir soru ve özet bir metin verilecek. 
+        Metni kullanarak SADECE soruya odaklan ve net bir yanıt ver. 
+        - Gereksiz özetleme yapma.
+        - Sadece sorunun cevabını ver.
+        - Yanıtını kısa, açık ve anlaşılır tut.
 
-            Soru:
-            {question}
+        Soru:
+        {question}
 
-            Cevap:
-            """
-        answer = gemini_generate_content(prompt)
+        Metin:
+        """
+        
+        summary = gemini_generate_content_with_chunk(full_text, chunk_size=2000)
+
+        answer = gemini_generate_content(f"{prompt}\n{summary}\n\nCevap:")
+
         messagebox.showinfo("Gemini Response", answer)
 
 def contextual_qa_text():
